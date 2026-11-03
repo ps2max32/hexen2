@@ -34,7 +34,7 @@ demo's `hexen.rc` has `startdemos` commented out); `ARGS="+map demo1"` goes to a
 | Video | `ps2/gl_vidps2.c` (from uHexen2's `gl_viddos.c` and apps/quake1's `vid_ps2.c`): the TV's mode, NTSC 640 x 448 or PAL 640 x 512 (the console's), or 1080i, with or without beam racing, 16 or 24-bit colour (below); the 2D in 640 x 448 / 512, in 1080i 640 x 360; trilinear; texture quality `gl_ps2texquality -1` (libgl's `MXGL_TEX_AUTO`), `gl_ps2texlimits 120,80,30` |
 | Files | stdio on the IOP file server (`host:`), `ps2/ps2_file.c` (apps/quake1's); the `Sys_` file calls (find, mkdir, file size, copy; rename is a copy) on `mx_fio_*` in `ps2/sys_ps2.c`; basedir and userdir `host:` |
 | Input | pad 0 (`ps2/in_ps2.c`): in the menus and the console the d-pad is the arrows, cross Enter, circle Escape, square Backspace; in the game R1 attack, cross jump, circle crouch, square use item, triangle next weapon, L1 / L2 inventory left / right, R2 run, L3 centre view (AUX keys, bound after the configs only where unbound: config.cfg keeps the player's own); left stick moves, right stick turns and looks; START menu, SELECT `+showinfo`, R3 the counters on/off |
-| Memory | maxsdk's virtual memory (`mx_vm_config` in `ps2/sys_ps2.c`): `malloc` in up to 128 MiB, paged to `host:hexen2.swp`; the hunk 32 MiB as uHexen2's default (`-heapsize <KiB>`); built into VM (`MX_MEMORY=vm`, the default: started by `mxload.elf`, as `make run` does), only maxsdk, libc and libgl in physical memory; stack 1 MiB. In PCSX2 only on the EE interpreter (`PCSX2_EE=interp`) |
+| Memory | maxsdk's virtual memory (`mx_vm_config` in `ps2/sys_ps2.c`): `malloc` in up to 128 MiB, paged to `host:hexen2.swp`; the hunk 32 MiB as uHexen2's default (`-heapsize <KiB>`); built into VM (`MX_MEMORY=vm`, the default: started by mxlink directly, or by `mxload.elf`, as `make run` does), only maxsdk, libc and libgl in physical memory; stack 1 MiB. In PCSX2 only on the EE interpreter (`PCSX2_EE=interp`) |
 | Sound | uHexen2's mixer (`snd_dma.c`, `snd_mix.c`) at 22050 Hz 16-bit stereo into a ring, sent to maxsdk's PCM stream (`mx/snd.h`, audsrv) by `ps2/snd_ps2.c` (`snddrv_ps2`) as far as the mixer has painted |
 | Network | loopback only (`ps2/net_ps2.c`; `net_dgrm.c` left out) |
 | Math | float literals (`-cl-single-precision-constant`) and float math.h (`ps2/ps2_math.h`): the FPU has no doubles |
@@ -60,6 +60,6 @@ Only the TV's mode (PAL, 16-bit, no beam racing) is tried yet.
 ## Status
 
 In PCSX2 (EE interpreter, VM): the menu, and `demo1` drawn right (about 2650 triangles,
-1.4 MB of textures in GS memory, none evicted). On the PS2: one run lost ps2link while
-`demo1` loaded (precaching its sprites), without a crash report; not found yet. Loading a
-level takes long on PCSX2's interpreter.
+1.4 MB of textures in GS memory, none evicted). On the PS2 `demo1` runs, but a run has also
+been seen to lose the loader's connection while the level loads (no crash report; not found
+yet). Loading a level takes long on PCSX2's interpreter.
