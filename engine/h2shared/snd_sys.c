@@ -33,6 +33,9 @@
 #include "snd_gus.h"
 #include "snd_pci.h"
 #include "snd_ahi.h"
+#if HAVE_PS2_SOUND
+extern snd_driver_t snddrv_ps2;
+#endif
 
 static qboolean	snd_sys_inited = false;
 
@@ -138,6 +141,9 @@ void S_DriversInit (void)
 	S_RegisterDriver(&snddrv_ahi);
 	if (COM_CheckParm ("-sndahi"))
 		snd_drivers->userpreferred = true;
+#endif
+#if HAVE_PS2_SOUND
+	S_RegisterDriver(&snddrv_ps2);
 #endif
 /* if sdl audio is compiled for any supported platform, then
  * register sdl audio the last to make it the default choice. */

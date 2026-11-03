@@ -38,7 +38,7 @@
 #endif
 #if defined(PLATFORM_UNIX) || \
     defined(__DJGPP__)     || \
-    defined(PLATFORM_RISCOS)
+    defined(PLATFORM_RISCOS) || defined(PLATFORM_PS2)
 #include <unistd.h>	/* write() */
 #endif
 

@@ -1594,11 +1594,22 @@ static void GL_Upload32 (unsigned int *data, gltexture_t *glt)
 	if (scaled_height < 1)
 		scaled_height = 1;
 
+#ifdef PLATFORM_PS2
+	/* the 2D's textures of a power of two up to 256 a side whole (the
+	   console's 256 x 128 font: halved, every other column of its letters
+	   is lost); the others at most gl_max_size (128) */
+	if (!(glt->flags & TEX_MIPMAP) && scaled_width == glt->width &&
+	    scaled_height == glt->height && scaled_width <= 256 && scaled_height <= 256)
+		;
+	else
+#endif
+	{
 	if (scaled_width > gl_max_size)
 		scaled_width = gl_max_size;
 
 	if (scaled_height > gl_max_size)
 		scaled_height = gl_max_size;
+	}
 
 	// 3dfx has some aspect ratio constraints.
 	// can't go beyond 8 to 1 or below 1 to 8.

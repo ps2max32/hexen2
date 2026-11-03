@@ -90,6 +90,14 @@ COMPILE_TIME_ASSERT(sockaddr, offsetof(struct sockaddr, sa_family) == SA_FAM_OFF
 
 #endif	/* end of unix stuff */
 
+/* the PS2 (maxsdk): no sockets, the loopback driver only (ps2/net_ps2.c) */
+#if defined(PLATFORM_PS2)
+typedef int	sys_socket_t;
+#define	INVALID_SOCKET	(-1)
+#define	SOCKET_ERROR	(-1)
+#define	SOCKETERRNO	errno
+#endif	/* PLATFORM_PS2 */
+
 
 /* os/2 includes and compatibility macros */
 #if defined(PLATFORM_OS2)

@@ -78,6 +78,12 @@
 #	define	PLATFORM_RISCOS		1
 #   endif
 
+#elif defined(__PS2__)		/* maxsdk (ps2/, the Makefile) */
+
+#   if !defined(PLATFORM_PS2)
+#	define	PLATFORM_PS2		1
+#   endif
+
 #else	/* here goes the unix platforms */
 
 #if defined(__unix) || defined(__unix__) || defined(unix)	|| \
@@ -165,6 +171,8 @@
 #	define	PLATFORM_STRING	"Irix"
 #elif defined(PLATFORM_RISCOS)
 #	define	PLATFORM_STRING	"RiscOS"
+#elif defined(PLATFORM_PS2)
+#	define	PLATFORM_STRING	"PS2"
 #elif defined(__GNU__)
 #	define	PLATFORM_STRING	"GNU/Hurd"
 #elif defined(PLATFORM_UNIX)
