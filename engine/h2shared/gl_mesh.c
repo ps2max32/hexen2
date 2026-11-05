@@ -45,6 +45,63 @@ static int		striptris[MAXALIASTRIS];
 static int		stripstverts[MAXALIASTRIS + 2];
 static int		stripcount;
 
+/* Every directed edge of the triangles, by hash. The strip and fan searches
+   look for the first triangle after starttri with a given edge: scanning all
+   triangles for each took most of a level's loading on the PS2. A chain holds
+   its entries by rising triangle, then corner, which is the scan's order, so
+   the strips stay the same. An entry is triangle * 3 + corner + 1; 0 ends. */
+#define	EDGE_HASH_SIZE	4096
+static unsigned short	edge_head[EDGE_HASH_SIZE];
+static unsigned short	edge_next[MAXALIASTRIS * 3 + 1];
+
+#define	EDGE_HASH(v1,s1,v2,s2)	(((v1) * 31 + (s1) * 17 + (v2) * 7 + (s2)) & (EDGE_HASH_SIZE - 1))
+
+static void BuildEdgeIndex (void)
+{
+	int		j, k, e, h;
+	mtriangle_t	*t;
+
+	memset (edge_head, 0, sizeof(edge_head));
+	for (j = pheader->numtris - 1; j >= 0; j--)
+	{
+		t = &triangles[j];
+		for (k = 2; k >= 0; k--)
+		{
+			e = j * 3 + k + 1;
+			h = EDGE_HASH(t->vertindex[k], t->stindex[k], t->vertindex[(k+1)%3], t->stindex[(k+1)%3]);
+			edge_next[e] = edge_head[h];
+			edge_head[h] = e;
+		}
+	}
+}
+
+/* the first triangle after starttri on side facesfront with edge
+   (m1,st1) -> (m2,st2): *pj the triangle, *pk the corner; 0 if there is none */
+static int FindEdge (int starttri, int facesfront, int m1, int st1, int m2, int st2, int *pj, int *pk)
+{
+	int		e, j, k;
+	mtriangle_t	*check;
+
+	for (e = edge_head[EDGE_HASH(m1, st1, m2, st2)]; e; e = edge_next[e])
+	{
+		j = (e - 1) / 3;
+		if (j <= starttri)
+			continue;
+		k = (e - 1) % 3;
+		check = &triangles[j];
+		if (check->facesfront != facesfront)
+			continue;
+		if (check->vertindex[k] != m1 || check->stindex[k] != st1)
+			continue;
+		if (check->vertindex[(k+1)%3] != m2 || check->stindex[(k+1)%3] != st2)
+			continue;
+		*pj = j;
+		*pk = k;
+		return 1;
+	}
+	return 0;
+}
+
 /*
 ================
 StripLength
@@ -81,21 +138,10 @@ static int StripLength (int starttri, int startv)
 
 	// look for a matching triangle
 nexttri:
-	for (j = starttri+1, check = &triangles[starttri+1]; j < pheader->numtris; j++, check++)
+	if (FindEdge (starttri, last->facesfront, m1, st1, m2, st2, &j, &k))
 	{
-		if (check->facesfront != last->facesfront)
-			continue;
-		for (k = 0; k < 3; k++)
+		check = &triangles[j];
 		{
-			if (check->vertindex[k] != m1)
-				continue;
-			if (check->stindex[k] != st1)
-				continue;
-			if (check->vertindex[ (k+1)%3 ] != m2)
-				continue;
-			if (check->stindex[ (k+1)%3 ] != st2)
-				continue;
-
 			// this is the next part of the fan
 
 			// if we can't use this triangle, this tristrip is done
@@ -126,11 +172,8 @@ nexttri:
 
 done:
 	// clear the temp used flags
-	for (j = starttri+1; j < pheader->numtris; j++)
-	{
-		if (used[j] == 2)
-			used[j] = 0;
-	}
+	for (j = 1; j < stripcount; j++)
+		used[striptris[j]] = 0;
 
 	return stripcount;
 }
@@ -171,21 +214,10 @@ static int FanLength (int starttri, int startv)
 
 	// look for a matching triangle
 nexttri:
-	for (j = starttri+1, check = &triangles[starttri+1]; j < pheader->numtris; j++, check++)
+	if (FindEdge (starttri, last->facesfront, m1, st1, m2, st2, &j, &k))
 	{
-		if (check->facesfront != last->facesfront)
-			continue;
-		for (k = 0; k < 3; k++)
+		check = &triangles[j];
 		{
-			if (check->vertindex[k] != m1)
-				continue;
-			if (check->stindex[k] != st1)
-				continue;
-			if (check->vertindex[ (k+1)%3 ] != m2)
-				continue;
-			if (check->stindex[ (k+1)%3 ] != st2)
-				continue;
-
 			// this is the next part of the fan
 
 			// if we can't use this triangle, this tristrip is done
@@ -208,11 +240,8 @@ nexttri:
 
 done:
 	// clear the temp used flags
-	for (j = starttri+1; j < pheader->numtris; j++)
-	{
-		if (used[j] == 2)
-			used[j] = 0;
-	}
+	for (j = 1; j < stripcount; j++)
+		used[striptris[j]] = 0;
 
 	return stripcount;
 }
@@ -243,6 +272,7 @@ static void BuildTris (void)
 	numorder = 0;
 	numcommands = 0;
 	memset (used, 0, sizeof(used));
+	BuildEdgeIndex ();
 	for (i = 0; i < pheader->numtris; i++)
 	{
 		// pick an unused triangle and start the trifan

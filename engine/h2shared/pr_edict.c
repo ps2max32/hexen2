@@ -44,6 +44,7 @@ static	int		pr_stringssize;
 static	const char	**pr_knownstrings;
 static	int		pr_maxknownstrings;
 static	int		pr_numknownstrings;
+static	int		pr_firstfree;	/* the slots below it are taken */
 static	ddef_t		*pr_fielddefs;
 static	ddef_t		*pr_globaldefs;
 
@@ -2063,6 +2064,7 @@ void PR_LoadProgs (void)
 
 	// initialize the strings
 	pr_numknownstrings = 0;
+	pr_firstfree = 0;
 	pr_maxknownstrings = 0;
 	pr_stringssize = progs->numstrings;
 	if (pr_knownstrings)
@@ -2302,7 +2304,7 @@ int PR_AllocString (int size, char **ptr)
 
 	if (!size)
 		return 0;
-	for (i = 0; i < pr_numknownstrings; i++)
+	for (i = pr_firstfree; i < pr_numknownstrings; i++)
 	{
 		if (!pr_knownstrings[i])
 			break;
@@ -2314,6 +2316,7 @@ int PR_AllocString (int size, char **ptr)
 		pr_numknownstrings++;
 //	}
 	pr_knownstrings[i] = (char *)Hunk_AllocName(size, "string");
+	pr_firstfree = i + 1;
 	if (ptr)
 		*ptr = (char *) pr_knownstrings[i];
 	return -1 - i;

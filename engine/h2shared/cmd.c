@@ -309,6 +309,11 @@ static void Cmd_Exec_f (void)
 	f = (char *)FS_LoadHunkFile (Cmd_Argv(1), NULL);
 	if (!f)
 	{
+#ifdef PLATFORM_PS2
+		/* hexen.rc runs it, and it only exists after the first quit */
+		if (!q_strcasecmp(Cmd_Argv(1), "config.cfg"))
+			return;
+#endif
 		Con_Printf ("couldn't exec %s\n",Cmd_Argv(1));
 		return;
 	}

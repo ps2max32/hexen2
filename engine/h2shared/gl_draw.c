@@ -1635,6 +1635,21 @@ static void GL_Upload32 (unsigned int *data, gltexture_t *glt)
 	{
 		mark = Hunk_LowMark();
 		scaled = (unsigned int *) Hunk_AllocName(scaled_width * scaled_height * sizeof(unsigned int), "texbuf_upload32");
+#ifdef PLATFORM_PS2
+		/* sprites: the nearest texels keep the palette's colours and alpha 0
+		   or 255, so libgl keeps them as 8-bit indices, not 32-bit colours */
+		if ((glt->flags & (TEX_MIPMAP|TEX_ALPHA|TEX_RGBA|TEX_TRANSPARENT|TEX_HOLEY|TEX_SPECIAL_TRANS)) == (TEX_MIPMAP|TEX_ALPHA))
+		{
+			int	x, y;
+			for (y = 0; y < scaled_height; y++)
+			{
+				unsigned int *row = data + glt->width * ((y * glt->height) / scaled_height);
+				for (x = 0; x < scaled_width; x++)
+					scaled[y * scaled_width + x] = row[(x * glt->width) / scaled_width];
+			}
+		}
+		else
+#endif
 		GL_ResampleTexture (data, glt->width, glt->height, scaled, scaled_width, scaled_height);
 	}
 
@@ -1650,6 +1665,7 @@ static void GL_Upload32 (unsigned int *data, gltexture_t *glt)
 		glTexImage2D_fp (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	}
 
+#ifndef PLATFORM_PS2	/* libgl makes the levels from level 0 and ignores these */
 	if (glt->flags & TEX_MIPMAP)
 	{
 		int		miplevel;
@@ -1664,6 +1680,7 @@ static void GL_Upload32 (unsigned int *data, gltexture_t *glt)
 			else	glTexImage2D_fp (GL_TEXTURE_2D, miplevel, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 		}
 	}
+#endif
 
 	if (glt->flags & TEX_NEAREST)
 	{

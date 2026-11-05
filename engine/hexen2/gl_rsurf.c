@@ -1360,6 +1360,12 @@ LIGHTMAP ALLOCATION
 =============================================================================
 */
 
+/* alloc_fail[texnum][h]: the narrowest block of height h or less known not to
+   fit in that lightmap. Columns only fill up, and what does not fit stops
+   anything wider or higher from fitting, so a full lightmap is not searched
+   again for each surface. */
+static unsigned char	alloc_fail[MAX_LIGHTMAPS][BLOCK_HEIGHT + 1];
+
 // returns a texture number and the position inside it
 static unsigned int AllocBlock (int w, int h, int *x, int *y)
 {
@@ -1369,6 +1375,9 @@ static unsigned int AllocBlock (int w, int h, int *x, int *y)
 
 	for (texnum = 0; texnum < MAX_LIGHTMAPS; texnum++)
 	{
+		if (h <= BLOCK_HEIGHT && alloc_fail[texnum][h] <= w)
+			continue;
+
 		best = BLOCK_HEIGHT;
 
 		for (i = 0; i < BLOCK_WIDTH - w; i++)
@@ -1390,7 +1399,14 @@ static unsigned int AllocBlock (int w, int h, int *x, int *y)
 		}
 
 		if (best + h > BLOCK_HEIGHT)
+		{
+			for (i = h; i <= BLOCK_HEIGHT; i++)
+			{
+				if (alloc_fail[texnum][i] > w)
+					alloc_fail[texnum][i] = w;
+			}
 			continue;
+		}
 
 		for (i = 0; i < w; i++)
 			allocated[texnum][*x + i] = best + h;
@@ -1553,6 +1569,7 @@ void GL_BuildLightmaps (void)
 	qmodel_t	*m;
 
 	memset (allocated, 0, sizeof(allocated));
+	memset (alloc_fail, 255, sizeof(alloc_fail));
 
 	r_framecount = 1;		// no dlightcache
 

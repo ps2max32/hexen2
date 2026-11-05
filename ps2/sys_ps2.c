@@ -238,6 +238,9 @@ char *Sys_GetClipboardData(void) { return NULL; }
 #if PS2_VM
 const struct mx_vm_config mx_vm_config = {
 	.swap = "hexen2.swp",
+	/* the writer thread: a level's load evicts many pages it wrote, and these
+	   writes go on while the EE works on the next file */
+	.clean_frames = 16,
 };
 #endif
 

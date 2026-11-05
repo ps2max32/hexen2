@@ -12,6 +12,12 @@
 
 #include "quakedef.h"
 
+#ifndef GL_SHARED_TEXTURE_PALETTE_EXT
+#define GL_SHARED_TEXTURE_PALETTE_EXT 0x81FB
+#endif
+void APIENTRY glColorTableEXT(GLenum target, GLenum ifmt, GLsizei width, GLenum format, GLenum type,
+                              const GLvoid *table);
+
 #define WARP_WIDTH 320
 #define WARP_HEIGHT 200
 
@@ -152,9 +158,14 @@ static void GL_Init(void) {
 	   (gl_draw.c's GL_Upload32) */
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_size);
 
-	/* one texture unit (libgl's second is a second pass), no stencil */
+	/* one texture unit (libgl's second is a second pass); the stencil's one bit
+	   is enough for the shadows (each pixel darkened once), -nostencil: without */
 	gl_mtexable = false;
-	have_stencil = false;
+	{
+		GLint bits = 0;
+		glGetIntegerv(GL_STENCIL_BITS, &bits);
+		have_stencil = bits > 0 && !COM_CheckParm("-nostencil");
+	}
 
 	glCullFace(GL_FRONT);
 	glEnable(GL_TEXTURE_2D);
@@ -246,6 +257,11 @@ void VID_Init(const unsigned char *palette) {
 	VID_ApplyMode();
 	GL_SetupLightmapFmt();
 	GL_Init();
+
+	/* the shared palette, 255 its transparent entry: libgl keeps the textures
+	   made of its colours as 8-bit indices */
+	glColorTableEXT(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGBA, 256, GL_RGBA, GL_UNSIGNED_BYTE, d_8to24table);
+	glEnable(GL_SHARED_TEXTURE_PALETTE_EXT);
 
 	vid_initialized = true;
 	vid.recalc_refdef = 1;
