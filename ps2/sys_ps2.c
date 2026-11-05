@@ -36,13 +36,13 @@ static void ps2_end(int status) {
 
 /* ---- files ------------------------------------------------------------------ */
 
-/* "host:..." as the IOP file server takes it: the engine's paths are
-   basedir "host:" + "/data1/..." */
+/* The engine's paths are basedir "host:" + "/data1/...": for the IOP file
+   server a path in the directory of the ELF */
 static const char *host_path(const char *path, char *buf, size_t room) {
 	const char *p = !strncmp(path, "host:", 5) ? path + 5 : path;
 	while (*p == '/')
 		p++;
-	q_snprintf(buf, room, "host:%s", p);
+	q_snprintf(buf, room, "%s", p);
 	return buf;
 }
 
@@ -237,7 +237,7 @@ char *Sys_GetClipboardData(void) { return NULL; }
    MX_MEMORY=phys: no VM, everything in the 32 MiB */
 #if PS2_VM
 const struct mx_vm_config mx_vm_config = {
-	.swap = "host:hexen2.swp",
+	.swap = "hexen2.swp",
 };
 #endif
 
@@ -300,8 +300,8 @@ int main(int argc, char **argv) {
 			mx_prof_stop();
 			mx_prof_report(600);
 #endif
-			int r = mxgl_screenshot("host:hexen2.tga");
-			mx_printf("ps2: %d frames, picture host:hexen2.tga: %d\n", last + 1, r);
+			int r = mxgl_screenshot("hexen2.tga");
+			mx_printf("ps2: %d frames, picture hexen2.tga: %d\n", last + 1, r);
 			ps2_end(0);
 		}
 	}
