@@ -1,5 +1,5 @@
 /* ps2_file.c: stdio files on the IOP file server (ps2_stdio.h). Paths are
-   the engine's OS paths, "host:..." (fs_basepath is "host:"). Reads go
+   the engine's OS paths, relative to the directory of the ELF. Reads go
    through a buffer per file, as the pk3 reader asks for a few bytes at a
    time and each mx_fio_read is a SIF RPC. */
 

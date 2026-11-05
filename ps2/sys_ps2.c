@@ -253,8 +253,8 @@ int main(int argc, char **argv) {
 		args[n++] = p;
 
 	memset(&parms, 0, sizeof parms);
-	parms.basedir = "host:";
-	parms.userdir = "host:";
+	parms.basedir = ".";
+	parms.userdir = ".";
 	parms.argc = n;
 	parms.argv = args;
 	host_parms = &parms;

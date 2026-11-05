@@ -93,9 +93,6 @@ void Sys_SendKeyEvents(void) {
 			pad_down[i] = 0;
 		}
 	}
-	/* R3 (the right stick pressed): the counters on and off */
-	if (held & ~last & MX_PAD_R3)
-		mxgl_show_stats = !mxgl_show_stats;
 	last = held;
 	u8 st[4];
 	if (mx_pad_sticks(0, st))
