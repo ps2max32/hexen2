@@ -28,12 +28,6 @@ qboolean isDedicated;
 
 static quakeparms_t parms;
 
-static void ps2_end(int status) __attribute__((noreturn));
-static void ps2_end(int status) {
-	mx_printf("@@PS2TEST_END@@ status=%d\n", status);
-	mx_exit(status);
-}
-
 /* ---- files ------------------------------------------------------------------ */
 
 /* The engine's paths are basedir "host:" + "/data1/...": for the IOP file
@@ -189,13 +183,13 @@ void Sys_Error(const char *error, ...) {
 	/* the shutdown once: it can fail into here again */
 	if (host_parms && host_parms->errstate++ == 0)
 		Host_Shutdown();
-	ps2_end(1);
+	mx_exit(1);
 }
 
 void Sys_Quit(void) {
 	Host_Shutdown();
 	mx_printf("Sys_Quit\n");
-	ps2_end(0);
+	mx_exit(0);
 }
 
 static u64 cycles(void) {
@@ -305,7 +299,7 @@ int main(int argc, char **argv) {
 #endif
 			int r = mxgl_screenshot("hexen2.tga");
 			mx_printf("ps2: %d frames, picture hexen2.tga: %d\n", last + 1, r);
-			ps2_end(0);
+			mx_exit(0);
 		}
 	}
 	return 0;
