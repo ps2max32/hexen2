@@ -181,10 +181,11 @@ static void GL_Init(void) {
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 }
 
-/* the mode of vid_mode, vid_beam, vid_rgb24: the 2D (console, status bar,
-   menus) in the TV's 640 x 448 or 640 x 512, in 1080i in 640 x 360 (the
-   size it has at 448 lines); the 3D in all of the screen
-   (GL_BeginRendering) */
+/* the mode of vid_mode, vid_beam, vid_rgb24 (vid_mode 0: the system's,
+   libgl's MXGL_SD; 1: 1080i where the system lets a game take it): the 2D
+   (console, status bar, menus) in the 240-576 line modes in 640 x their
+   lines, in the 720 and 1080 line modes in 640 x 360 (the size it has at
+   448 lines); the 3D in all of the screen (GL_BeginRendering) */
 static int vid_cur = -1;
 static void VID_ApplyMode(void) {
 	int hd = vid_mode.integer == 1;
@@ -204,13 +205,13 @@ static void VID_ApplyMode(void) {
 	int w, h;
 	mxgl_screen(&w, &h);
 	vid.conwidth = vid.width = 640;
-	vid.conheight = vid.height = hd ? 360 : h;
+	vid.conheight = vid.height = h > 576 ? 360 : h;
 	vid.recalc_refdef = 1;
 	if (vid_initialized)
 		Con_CheckResize();
 	flags = mxgl_mode_flags();
 	Con_SafePrintf("Video mode %dx%d (%s)%s%s.\n", w, h,
-	               hd ? "1080i" : mxgl_mode() == MXGL_PAL ? "PAL" : "NTSC",
+	               mxgl_mode_name(),
 	               flags & MXGL_BEAM ? ", beam racing" : "", flags & MXGL_RGB24 ? ", 24-bit colour" : "");
 }
 
