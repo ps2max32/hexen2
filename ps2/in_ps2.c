@@ -48,7 +48,40 @@ static const struct {
 
 static float stick[4]; /* right x, y, left x, y: -1 .. 1 */
 
+/* the sticks (the console or config.cfg change them) */
+static cvar_t joy_deadzone = {"joy_deadzone", "0.22", CVAR_ARCHIVE};
+static cvar_t joy_curve = {"joy_curve", "1.5", CVAR_ARCHIVE};
+static cvar_t joy_yawspeed = {"joy_yawspeed", "270", CVAR_ARCHIVE};
+static cvar_t joy_pitchspeed = {"joy_pitchspeed", "175", CVAR_ARCHIVE};
+
+/* A stick's two axes (-1 .. 1) as a PS4 or PS5 game takes them: a round dead
+   zone dz (drift, also diagonal), the rest stretched to 0 .. 1 and raised to
+   the power curve (1: linear; 1.5: finer aim near the middle, full speed
+   at the edge), the direction kept */
+static void stick_shape(float *x, float *y, float dz, float curve) {
+	float m = sqrtf(*x * *x + *y * *y);
+	if (m <= dz || m <= 0) {
+		*x = *y = 0;
+		return;
+	}
+	float s = (m - dz) / (1 - dz);
+	if (s > 1)
+		s = 1;
+	s = powf(s, curve);
+	*x *= s / m;
+	*y *= s / m;
+}
+
+static float stick_raw(u8 v) {
+	float f = ((int)v - 128) / 127.0f;
+	return f < -1 ? -1 : f > 1 ? 1 : f;
+}
+
 void IN_Init(void) {
+	Cvar_RegisterVariable(&joy_deadzone);
+	Cvar_RegisterVariable(&joy_curve);
+	Cvar_RegisterVariable(&joy_yawspeed);
+	Cvar_RegisterVariable(&joy_pitchspeed);
 	pad_ok = mx_pad_init() >= 0;
 	Con_Printf("pad: %s\n", pad_ok ? "ok" : "no driver");
 }
@@ -95,16 +128,16 @@ void Sys_SendKeyEvents(void) {
 	}
 	last = held;
 	u8 st[4];
-	if (mx_pad_sticks(0, st))
-		for (int k = 0; k < 4; k++) {
-			int v = (int)st[k] - 128;
-			v = v > -32 && v < 32 ? 0 : v > 0 ? v - 32 : v + 32;
-			stick[k] = v / 96.0f;
-		}
+	if (mx_pad_sticks(0, st)) {
+		for (int k = 0; k < 4; k++)
+			stick[k] = stick_raw(st[k]);
+		stick_shape(&stick[0], &stick[1], joy_deadzone.value, joy_curve.value); /* look */
+		stick_shape(&stick[2], &stick[3], joy_deadzone.value, 1);              /* move */
+	}
 }
 
-/* the left stick moves, the right one turns (180 degrees a second at full
-   turn) and looks up and down */
+/* the left stick moves, the right one turns (joy_yawspeed and
+   joy_pitchspeed degrees a second at full turn) */
 void IN_Move(usercmd_t *cmd) {
 	if (cl.v.cameramode) {
 		/* stuck in a different camera so don't move */
@@ -113,10 +146,17 @@ void IN_Move(usercmd_t *cmd) {
 	}
 	if (Key_GetDest() != key_game)
 		return;
-	cmd->forwardmove -= stick[3] * cl_forwardspeed.value;
-	cmd->sidemove += stick[2] * cl_sidespeed.value;
-	cl.viewangles[YAW] -= stick[0] * 180.0f * host_frametime;
-	cl.viewangles[PITCH] += stick[1] * 135.0f * host_frametime;
+	/* one speed for both axes, so the move goes where the stick points, as
+	   the keys' (CL_BaseMove): 200, run (always run or +speed) and haste */
+	float speed = 200;
+	if (((cl_forwardspeed.value > 200) ^ (in_speed.state & 1)) && cl.v.hasted <= 1)
+		speed *= cl_movespeedkey.value;
+	if (cl.v.hasted)
+		speed *= cl.v.hasted;
+	cmd->forwardmove -= stick[3] * speed;
+	cmd->sidemove += stick[2] * speed;
+	cl.viewangles[YAW] -= stick[0] * joy_yawspeed.value * host_frametime;
+	cl.viewangles[PITCH] += stick[1] * joy_pitchspeed.value * host_frametime;
 	if (stick[1])
 		V_StopPitchDrift();
 	if (cl.viewangles[PITCH] > 80)
